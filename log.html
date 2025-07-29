@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>KeyLot Log</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 15px;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+
+      h2 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      label {
+        margin-right: 8px;
+        font-weight: 600;
+      }
+
+      select {
+        margin-right: 20px;
+        padding: 5px 10px;
+        font-size: 1rem;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+        min-width: 120px;
+      }
+
+      ul#logList {
+        list-style-type: none;
+        padding-left: 0;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: white;
+        margin-top: 15px;
+      }
+
+      ul#logList li {
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+        cursor: default;
+      }
+
+      ul#logList li:hover {
+        background-color: #f0f0f0;
+      }
+
+      button {
+        padding: 8px 15px;
+        margin-top: 15px;
+        background-color: #007bff;
+        border: none;
+        border-radius: 5px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>KeyLot Log</h2>
+    <div>
+      <label for="filterPerson">Filter by Person:</label>
+      <select id="filterPerson">
+        <option value="">--All--</option>
+      </select>
+
+      <label for="filterStock">Filter by Stock Number:</label>
+      <select id="filterStock">
+        <option value="">--All--</option>
+      </select>
+
+      <label for="timeFilter">Filter by Time:</label>
+      <select id="timeFilter">
+        <option value="all">All</option>
+        <option value="today">Today</option>
+        <option value="7days">Last 7 Days</option>
+      </select>
+    </div>
+
+    <ul id="logList"></ul>
+
+    <script>
+      const { ipcRenderer } = require("electron");
+
+      const logList = document.getElementById("logList");
+      const filterPerson = document.getElementById("filterPerson");
+      const filterStock = document.getElementById("filterStock");
+
+      async function loadLogData() {
+        const data = await ipcRenderer.invoke("get-data");
+
+        // Sort people and stock numbers alphanumerically
+        const sortedPeople = [...data.people].sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+        );
+        const sortedStock = [...data.stockNumbers].sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+        );
+
+        populateFilters(sortedPeople, sortedStock);
+        displayLogs(data.records);
+      }
+
+      function populateFilters(people, stocks) {
+        const currentPerson = filterPerson.value;
+        const currentStock = filterStock.value;
+
+        // Clear options
+        while (filterPerson.options.length > 1) filterPerson.remove(1);
+        while (filterStock.options.length > 1) filterStock.remove(1);
+
+        // Populate sorted options
+        people.forEach((p) => {
+          const option = document.createElement("option");
+          option.value = p;
+          option.textContent = p;
+          filterPerson.appendChild(option);
+        });
+
+        stocks.forEach((s) => {
+          const option = document.createElement("option");
+          option.value = s;
+          option.textContent = s;
+          filterStock.appendChild(option);
+        });
+
+        filterPerson.value = people.includes(currentPerson) ? currentPerson : "";
+        filterStock.value = stocks.includes(currentStock) ? currentStock : "";
+      }
+
+      function displayLogs(records) {
+        logList.innerHTML = "";
+        const personFilter = filterPerson.value;
+        const stockFilter = filterStock.value;
+
+        const filtered = records.filter((record) => {
+          if (personFilter && record.person !== personFilter) return false;
+          if (stockFilter && record.stockNumber !== stockFilter) return false;
+          return true;
+        });
+
+        // Sort by timestamp DESCENDING
+        filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        filtered.forEach((record) => {
+          const li = document.createElement("li");
+          li.textContent = `${record.person} ${record.action} key ${record.stockNumber} @ ${new Date(record.timestamp).toLocaleString()}`;
+          logList.appendChild(li);
+        });
+      }
+
+      filterPerson.addEventListener("change", loadLogData);
+      filterStock.addEventListener("change", loadLogData);
+
+      loadLogData();
+    </script>
+  </body>
+</html>

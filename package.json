@@ -1,0 +1,16 @@
+{
+  "name": "keylot",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "electron": "^37.2.2",
+    "lowdb": "^3.0.0"
+  }
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>KeyLot</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <h1>KeyLot</h1>
+  
+ <div class="lists">
+  <div class="list-container">
+    <h3>People</h3>
+    <div id="peopleList"></div>
+    <div class="controls">
+      <button onclick="openPersonModal()">Add</button>
+      <button onclick="removePerson()">Remove</button> 
+    </div>
+  </div>
+
+  <div class="list-container">
+    <h3>Stock Numbers</h3>
+    <div id="stockList"></div>
+    <div class="controls">
+      <button onclick="openStockModal()">Add</button>
+      <button onclick="removeStock()">Remove</button>
+    </div>
+  </div>
+</div>
+
+
+  <div class="controls">
+    <button onclick="checkOut()">Check Out Key</button>
+    <button onclick="checkIn()">Check In Key</button>
+    <button onclick="openLogWindow()">Open Log Window</button>
+  </div>
+
+  
+
+
+  <!-- Modal for adding a Person -->
+<div id="personModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Add New Person</h3>
+    <input type="text" id="personInput" placeholder="Enter name" />
+    <div style="margin-top:10px;">
+      <button onclick="confirmAddPerson()">Add</button>
+      <button onclick="closePersonModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for adding Stock Number -->
+<div id="stockModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Add New Stock Number</h3>
+    <input type="text" id="stockInput" placeholder="Enter stock number" />
+    <div style="margin-top:10px;">
+      <button onclick="confirmAddStock()">Add</button>
+      <button onclick="closeStockModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+  <script src="renderer.js"></script>
+
+</body>
+</html>
