@@ -99,16 +99,17 @@
       const logList = document.getElementById("logList");
       const filterPerson = document.getElementById("filterPerson");
       const filterStock = document.getElementById("filterStock");
+      const timeFilter = document.getElementById("timeFilter");
 
       async function loadLogData() {
         const data = await ipcRenderer.invoke("get-data");
 
-        // Sort people and stock numbers alphanumerically
         const sortedPeople = [...data.people].sort((a, b) =>
           a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
         );
+
         const sortedStock = [...data.stockNumbers].sort((a, b) =>
-          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+          a.stockNumber.localeCompare(b.stockNumber, undefined, { numeric: true, sensitivity: "base" })
         );
 
         populateFilters(sortedPeople, sortedStock);
@@ -119,11 +120,9 @@
         const currentPerson = filterPerson.value;
         const currentStock = filterStock.value;
 
-        // Clear options
         while (filterPerson.options.length > 1) filterPerson.remove(1);
         while (filterStock.options.length > 1) filterStock.remove(1);
 
-        // Populate sorted options
         people.forEach((p) => {
           const option = document.createElement("option");
           option.value = p;
@@ -133,27 +132,43 @@
 
         stocks.forEach((s) => {
           const option = document.createElement("option");
-          option.value = s;
-          option.textContent = s;
+          option.value = s.stockNumber;
+          option.textContent = `${s.stockNumber} | ${s.make} ${s.model}`;
           filterStock.appendChild(option);
         });
 
-        filterPerson.value = people.includes(currentPerson) ? currentPerson : "";
-        filterStock.value = stocks.includes(currentStock) ? currentStock : "";
+        filterPerson.value = currentPerson;
+        filterStock.value = currentStock;
       }
 
       function displayLogs(records) {
         logList.innerHTML = "";
+
         const personFilter = filterPerson.value;
         const stockFilter = filterStock.value;
+        const timeFilterValue = timeFilter.value;
+        const now = new Date();
 
         const filtered = records.filter((record) => {
           if (personFilter && record.person !== personFilter) return false;
           if (stockFilter && record.stockNumber !== stockFilter) return false;
+
+          if (timeFilterValue === "today") {
+            const recordDate = new Date(record.timestamp);
+            return (
+              recordDate.toDateString() === now.toDateString()
+            );
+          }
+
+          if (timeFilterValue === "7days") {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(now.getDate() - 7);
+            return new Date(record.timestamp) >= sevenDaysAgo;
+          }
+
           return true;
         });
 
-        // Sort by timestamp DESCENDING
         filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         filtered.forEach((record) => {
@@ -165,6 +180,7 @@
 
       filterPerson.addEventListener("change", loadLogData);
       filterStock.addEventListener("change", loadLogData);
+      timeFilter.addEventListener("change", loadLogData);
 
       loadLogData();
     </script>

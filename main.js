@@ -16,7 +16,7 @@ initDB();
 
 async function createWindow() {
   const win = new BrowserWindow({
-    width: 800,
+    width: 850,
     height: 600,
     webPreferences: {
       nodeIntegration: true,
@@ -29,6 +29,7 @@ async function createWindow() {
 
 app.whenReady().then(createWindow);
 
+// Get Data
 ipcMain.handle('get-data', async () => {
   await db.read();
   return {
@@ -39,6 +40,7 @@ ipcMain.handle('get-data', async () => {
   };
 });
 
+// Add Person
 ipcMain.handle('add-person', async (e, name) => {
   await db.read();
   db.data.people ||= [];
@@ -48,6 +50,7 @@ ipcMain.handle('add-person', async (e, name) => {
   }
 });
 
+// Remove Person
 ipcMain.handle('remove-person', async (e, name) => {
   await db.read();
   db.data.people ||= [];
@@ -55,15 +58,16 @@ ipcMain.handle('remove-person', async (e, name) => {
   await db.write();
 });
 
-ipcMain.handle('add-stock', async (e, stock) => {
-  await db.read();
-  db.data.stockNumbers ||= [];
-  if (!db.data.stockNumbers.includes(stock)) {
-    db.data.stockNumbers.push(stock);
+// Add Stock 
+ipcMain.handle('add-stock', async (event, stockData) => {
+  if (!db.data.stockNumbers.some(s => s.stockNumber === stockData.stockNumber)) {
+    db.data.stockNumbers.push(stockData);
     await db.write();
   }
+  return db.data.stockNumbers;
 });
 
+// Remove Stock
 ipcMain.handle('remove-stock', async (e, stock) => {
   await db.read();
   db.data.stockNumbers ||= [];
@@ -78,6 +82,7 @@ ipcMain.handle('add-log', async (e, entry) => {
   await db.write();
 });
 
+// Check out Key
 ipcMain.handle('check-out', async (event, { stockNumber, person }) => {
   await db.read();
   db.data.records ||= [];
@@ -98,7 +103,7 @@ ipcMain.handle('check-out', async (event, { stockNumber, person }) => {
   return { success: true };
 });
 
-
+// Check in Key
 ipcMain.handle('check-in', async (event, stockNumber) => {
   await db.read();
   db.data.records ||= [];
