@@ -9,7 +9,6 @@ let logEntries = [];
 
 function getCheckedOutKeys(records) {
   const checkedOut = new Set();
-
   records.forEach(record => {
     if (record.action === 'check-out') {
       checkedOut.add(record.stockNumber);
@@ -17,9 +16,11 @@ function getCheckedOutKeys(records) {
       checkedOut.delete(record.stockNumber);
     }
   });
-
-  console.log('Checked out keys:', [...checkedOut]); // DEBUG
   return checkedOut;
+}
+
+function displayStockLabel(stock) {
+  return `${stock.stockNumber} | ${stock.make} ${stock.model} (${stock.color}) [${stock.vin}]`;
 }
 
 function createList(containerId, items, onClickCallback, selectedItem, checkedOutKeys = new Set()) {
@@ -30,20 +31,29 @@ function createList(containerId, items, onClickCallback, selectedItem, checkedOu
     const div = document.createElement('div');
     div.classList.add('list-item');
 
-    if (containerId === 'stockList' && checkedOutKeys.has(item)) {
-      console.log(`Adding star for checked-out key: ${item}`); // DEBUG
-      div.textContent = `${item} ⭐`;
-    } else {
-      div.textContent = item;
+    let label = item;
+    if (containerId === 'stockList') {
+      label = displayStockLabel(item);
+      if (checkedOutKeys.has(item.stockNumber)) {
+        label += ' ⭐';
+      }
     }
 
-    if (item === selectedItem) div.classList.add('selected');
+    div.textContent = label;
+
+    const isSelected = (containerId === 'stockList' ? item.stockNumber : item) === selectedItem;
+    if (isSelected) div.classList.add('selected');
 
     div.addEventListener('click', () => {
       const listItems = container.querySelectorAll('.list-item');
       listItems.forEach(li => li.classList.remove('selected'));
       div.classList.add('selected');
-      onClickCallback(item);
+
+      if (containerId === 'stockList') {
+        onClickCallback(item.stockNumber);
+      } else {
+        onClickCallback(item);
+      }
     });
 
     container.appendChild(div);
@@ -51,19 +61,19 @@ function createList(containerId, items, onClickCallback, selectedItem, checkedOu
 }
 
 function updateAllLists() {
-  // Sort people list alphabetically
-  const sortedPeople = [...people].sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base'}));
+  const sortedPeople = [...people].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   createList('peopleList', sortedPeople, p => selectedPerson = p, selectedPerson);
 
-  // Sort stockNumbers alphanumerically
-  const sortedStockNumbers = [...stockNumbers].sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+  const sortedStockNumbers = [...stockNumbers].sort((a, b) =>
+    a.stockNumber.localeCompare(b.stockNumber, undefined, { numeric: true, sensitivity: 'base' })
+  );
   const checkedOutKeys = getCheckedOutKeys(logEntries);
   createList('stockList', sortedStockNumbers, s => selectedStock = s, selectedStock, checkedOutKeys);
 }
 
-
 function updateLogUI() {
   const log = document.getElementById('log');
+  if (!log) return; // Defensive check, in case log element is missing
   log.innerHTML = '';
   logEntries.forEach(entry => {
     const li = document.createElement('li');
@@ -76,10 +86,7 @@ async function loadData() {
   const data = await ipcRenderer.invoke('get-data');
   people = data.people || [];
   stockNumbers = data.stockNumbers || [];
-  logEntries = data.records || []; // Use data.records here because checked out keys come from 'records'
-
-  console.log('Loaded logEntries:', logEntries); // DEBUG
-
+  logEntries = data.records || [];
   updateAllLists();
   updateLogUI();
 }
@@ -104,10 +111,10 @@ async function removePerson() {
   await loadData();
 }
 
-async function addStockByNumber(stock) {
-  if (!stockNumbers.includes(stock)) {
-    stockNumbers.push(stock);
-    await ipcRenderer.invoke('add-stock', stock);
+async function addStockByNumber(stockData) {
+  if (!stockNumbers.some(s => s.stockNumber === stockData.stockNumber)) {
+    stockNumbers.push(stockData);
+    await ipcRenderer.invoke('add-stock', stockData);
     updateAllLists();
   } else {
     alert('Stock number already exists.');
@@ -149,8 +156,7 @@ async function checkIn() {
     return;
   }
 
-  const person = await ipcRenderer.invoke('check-in', selectedStock); // returns person or 'Unknown'
-
+  const person = await ipcRenderer.invoke('check-in', selectedStock);
   if (person === 'Unknown') {
     alert('This key was never checked out.');
     return;
@@ -184,6 +190,10 @@ async function confirmAddPerson() {
 function openStockModal() {
   document.getElementById('stockModal').style.display = 'flex';
   document.getElementById('stockInput').value = '';
+  document.getElementById('makeInput').value = '';
+  document.getElementById('modelInput').value = '';
+  document.getElementById('colorInput').value = '';
+  document.getElementById('vinInput').value = '';
   document.getElementById('stockInput').focus();
 }
 
@@ -192,12 +202,18 @@ function closeStockModal() {
 }
 
 async function confirmAddStock() {
-  const stock = document.getElementById('stockInput').value.trim();
-  if (stock) {
-    await addStockByNumber(stock);
+  const stockNumber = document.getElementById('stockInput').value.trim();
+  const make = document.getElementById('makeInput').value.trim();
+  const model = document.getElementById('modelInput').value.trim();
+  const color = document.getElementById('colorInput').value.trim();
+  const vin = document.getElementById('vinInput').value.trim();
+
+  if (stockNumber && make && model && color && vin) {
+    const stockData = { stockNumber, make, model, color, vin };
+    await addStockByNumber(stockData);
     closeStockModal();
   } else {
-    alert('Please enter a stock number.');
+    alert('Please fill in all stock fields.');
   }
 }
 
