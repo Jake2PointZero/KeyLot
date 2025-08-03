@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    h2 { margin-top: 30px; }
+    input { margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+
+  <div id="controls">
+    <h2>Add Year</h2>
+    <input type="text" id="yearInput" placeholder="e.g. 2025">
+    <button onclick="addOption('years')">Add Year</button>
+    <ul id="yearList"></ul> <!-- fixed ID -->
+
+    <h2>Add Make</h2>
+    <input type="text" id="makeInput" placeholder="e.g. Honda">
+    <button onclick="addOption('makes')">Add Make</button>
+    <ul id="makeList"></ul>
+
+    <h2>Add Model</h2>
+    <input type="text" id="modelInput" placeholder="e.g. Accord">
+    <button onclick="addOption('models')">Add Model</button>
+    <ul id="modelList"></ul>
+
+    <h2>Add Color</h2>
+    <input type="text" id="colorInput" placeholder="e.g. White">
+    <button onclick="addOption('colors')">Add Color</button>
+    <ul id="colorList"></ul>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    async function loadOptions() {
+      const options = await ipcRenderer.invoke('get-options');
+      renderList('years', options.years);
+      renderList('makes', options.makes);
+      renderList('models', options.models);
+      renderList('colors', options.colors);
+    }
+
+    function renderList(category, items) {
+      const list = document.getElementById(`${category.slice(0, -1)}List`);
+      list.innerHTML = '';
+      items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        list.appendChild(li);
+      });
+    }
+
+    async function addOption(category) {
+      const input = document.getElementById(`${category.slice(0, -1)}Input`);
+      const value = input.value.trim();
+      if (value) {
+        const updated = await ipcRenderer.invoke('add-option', category, value);
+        renderList(category, updated);
+        input.value = '';
+      }
+    }
+
+    loadOptions();
+  </script>
+</body>
+</html>

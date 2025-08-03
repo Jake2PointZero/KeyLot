@@ -71,24 +71,12 @@ function updateAllLists() {
   createList('stockList', sortedStockNumbers, s => selectedStock = s, selectedStock, checkedOutKeys);
 }
 
-function updateLogUI() {
-  const log = document.getElementById('log');
-  if (!log) return; // Defensive check, in case log element is missing
-  log.innerHTML = '';
-  logEntries.forEach(entry => {
-    const li = document.createElement('li');
-    li.textContent = entry;
-    log.appendChild(li);
-  });
-}
-
 async function loadData() {
   const data = await ipcRenderer.invoke('get-data');
   people = data.people || [];
   stockNumbers = data.stockNumbers || [];
   logEntries = data.records || [];
   updateAllLists();
-  updateLogUI();
 }
 
 async function addPersonByName(name) {
@@ -137,15 +125,15 @@ async function checkOut() {
     return;
   }
 
-  const entry = `${selectedPerson} checked out key ${selectedStock} @ ${new Date().toLocaleString()}`;
-  await ipcRenderer.invoke('add-log', entry);
-
   const result = await ipcRenderer.invoke('check-out', { stockNumber: selectedStock, person: selectedPerson });
 
   if (result?.error) {
     alert(result.error);
     return;
   }
+
+  const entry = `${selectedPerson} checked out key ${selectedStock} @ ${new Date().toLocaleString()}`;
+  await ipcRenderer.invoke('add-log', entry);
 
   await loadData();
 }
@@ -190,9 +178,6 @@ async function confirmAddPerson() {
 function openStockModal() {
   document.getElementById('stockModal').style.display = 'flex';
   document.getElementById('stockInput').value = '';
-  document.getElementById('makeInput').value = '';
-  document.getElementById('modelInput').value = '';
-  document.getElementById('colorInput').value = '';
   document.getElementById('vinInput').value = '';
   document.getElementById('stockInput').focus();
 }
@@ -203,13 +188,14 @@ function closeStockModal() {
 
 async function confirmAddStock() {
   const stockNumber = document.getElementById('stockInput').value.trim();
-  const make = document.getElementById('makeInput').value.trim();
-  const model = document.getElementById('modelInput').value.trim();
-  const color = document.getElementById('colorInput').value.trim();
+  const year = document.getElementById('yearDropdown').value.trim();
+  const make = document.getElementById('makeDropdown').value.trim();
+  const model = document.getElementById('modelDropdown').value.trim();
+  const color = document.getElementById('colorDropdown').value.trim();
   const vin = document.getElementById('vinInput').value.trim();
 
-  if (stockNumber && make && model && color && vin) {
-    const stockData = { stockNumber, make, model, color, vin };
+  if (stockNumber && year && make && model && color && vin) {
+    const stockData = { stockNumber, year, make, model, color, vin };
     await addStockByNumber(stockData);
     closeStockModal();
   } else {
@@ -221,4 +207,28 @@ async function openLogWindow() {
   await ipcRenderer.invoke('open-log-window');
 }
 
+function openAdmin() {
+  ipcRenderer.send('open-admin-window');
+}
+
+async function populateDropdowns() {
+  const options = await ipcRenderer.invoke('get-options');
+
+  populateSelect('yearDropdown', options.years);
+  populateSelect('makeDropdown', options.makes);
+  populateSelect('modelDropdown', options.models);
+  populateSelect('colorDropdown', options.colors);
+}
+
+function populateSelect(id, values) {
+  const select = document.getElementById(id);
+  select.innerHTML = '';
+  values.forEach(val => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = val;
+    select.appendChild(opt);
+  });
+}
+
+populateDropdowns();
 loadData();

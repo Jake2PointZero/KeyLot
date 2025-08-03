@@ -71,6 +71,7 @@
     <button onclick="checkOut()">Check Out Key</button>
     <button onclick="checkIn()">Check In Key</button>
     <button onclick="openLogWindow()">Open Log Window</button>
+    <button onclick="openAdmin()">Admin Settings</button>
   </div>
 
   <!-- Modal for adding a Person -->
@@ -90,9 +91,10 @@
     <div class="modal-content">
       <h3>Add New Stock Number</h3>
       <input type="text" id="stockInput" placeholder="Stock Number" />
-      <input type="text" id="makeInput" placeholder="Make" />
-      <input type="text" id="modelInput" placeholder="Model" />
-      <input type="text" id="colorInput" placeholder="Color" />
+      <select id="yearDropdown"></select>
+      <select id="makeDropdown"></select>
+      <select id="modelDropdown"></select>
+      <select id="colorDropdown"></select>
       <input type="text" id="vinInput" placeholder="Last 8 of VIN" maxlength="8" />
       <div style="margin-top:10px;">
         <button onclick="confirmAddStock()">Add</button>

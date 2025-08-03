@@ -8,7 +8,23 @@ const db = new Low(adapter);
 
 async function initDB() {
   await db.read();
-  db.data ||= { people: [], stockNumbers: [], logEntries: [], records: [] };
+  db.data ||= {
+    people: [],
+    stockNumbers: [],
+    logEntries: [],
+    records: [],
+    options: {
+      years: [],
+      makes: [],
+      models: [],
+      colors: [],
+    },
+  };
+  // Ensure options exists and is not missing keys
+  db.data.options ||= {};
+  db.data.options.makes ||= [];
+  db.data.options.models ||= [];
+  db.data.options.colors ||= [];
   await db.write();
 }
 
@@ -60,6 +76,8 @@ ipcMain.handle('remove-person', async (e, name) => {
 
 // Add Stock 
 ipcMain.handle('add-stock', async (event, stockData) => {
+  await db.read();
+  db.data.stockNumbers ||= [];
   if (!db.data.stockNumbers.some(s => s.stockNumber === stockData.stockNumber)) {
     db.data.stockNumbers.push(stockData);
     await db.write();
@@ -71,10 +89,12 @@ ipcMain.handle('add-stock', async (event, stockData) => {
 ipcMain.handle('remove-stock', async (e, stock) => {
   await db.read();
   db.data.stockNumbers ||= [];
-  db.data.stockNumbers = db.data.stockNumbers.filter(s => s !== stock);
+  db.data.stockNumbers = db.data.stockNumbers.filter(s => s.stockNumber !== stock); // ✅ FIXED
   await db.write();
 });
 
+
+// Add Log Entry
 ipcMain.handle('add-log', async (e, entry) => {
   await db.read();
   db.data.logEntries ||= [];
@@ -87,7 +107,6 @@ ipcMain.handle('check-out', async (event, { stockNumber, person }) => {
   await db.read();
   db.data.records ||= [];
 
-  // Check if the stock is already checked out
   const lastAction = [...db.data.records]
     .reverse()
     .find(r => r.stockNumber === stockNumber);
@@ -122,8 +141,46 @@ ipcMain.handle('check-in', async (event, stockNumber) => {
   return person;
 });
 
-// LOG Window
+// Options
 
+ipcMain.handle('get-options', async () => {
+  await db.read();
+  db.data.options ||= { years: [], makes: [], models: [], colors: [] };
+  return db.data.options;
+});
+
+ipcMain.handle('add-option', async (event, category, value) => {
+  await db.read();
+  db.data.options ||= { years: [], makes: [], models: [], colors: [] };
+
+  if (!db.data.options[category]) {
+    db.data.options[category] = [];
+  }
+
+  if (!db.data.options[category].includes(value)) {
+    db.data.options[category].push(value);
+    await db.write();
+  }
+
+  return db.data.options[category];
+});
+
+// Admin Window
+ipcMain.on('open-admin-window', () => {
+  const adminWin = new BrowserWindow({
+    width: 500,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  adminWin.loadFile('admin.html');
+});
+
+// Log Window
 let logWindow = null;
 
 function createLogWindow() {
@@ -152,4 +209,3 @@ function createLogWindow() {
 ipcMain.handle('open-log-window', () => {
   createLogWindow();
 });
-
