@@ -33,7 +33,7 @@ initDB();
 async function createWindow() {
   const win = new BrowserWindow({
     width: 850,
-    height: 650,
+    height: 600,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
