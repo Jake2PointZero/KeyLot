@@ -1,108 +1,149 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8" />
-  <title>KeyLot</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    /* Minimal styles for modal */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 5px;
-      min-width: 300px;
-    }
-    .list-item {
-      padding: 6px 10px;
-      cursor: pointer;
-      border-bottom: 1px solid #ddd;
-    }
-    .list-item.selected {
-      background-color: #007bff;
-      color: white;
-    }
-    .lists {
-      display: flex;
-      gap: 30px;
-      margin-bottom: 20px;
-    }
-    .list-container {
-      flex: 1;
-    }
-    .controls button {
-      margin-right: 8px;
-    }
-  </style>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <title>KeyLot</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      body {
+        font-size: 14px;
+      }
+      /* Minimal styles for modal */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+      }
+      .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        min-width: 300px;
+      }
+      .list-item {
+        padding: 6px 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #ddd;
+      }
+      .list-item.selected {
+        background-color: #007bff;
+        color: white;
+      }
+      .lists {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 20px;
+      }
+      .list-container {
+        flex: 1;
+      }
+      .controls button {
+        margin-right: 8px;
+      }
+      #stockList {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 5px;
+        margin-top: 5px;
+      }
+      .controls-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+      }
 
-<body>
-  <h1>KeyLot</h1>
-  
-  <div class="lists">
-    <div class="list-container">
-      <h3>People</h3>
-      <div id="peopleList"></div>
-      <div class="controls">
-        <button onclick="openPersonModal()">Add</button>
-        <button onclick="removePerson()">Remove</button> 
+      .left-controls,
+      .right-controls {
+        display: flex;
+        gap: 10px;
+      }
+      #peopleList {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 5px;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>KeyLot</h1>
+
+    <div class="lists">
+      <div class="list-container">
+        <h3>People</h3>
+        <div id="peopleList"></div>
+        <div class="controls">
+          <button onclick="openPersonModal()">Add</button>
+          <button onclick="removePerson()">Remove</button>
+        </div>
+      </div>
+
+      <div class="list-container">
+        <h3>Stock Numbers</h3>
+        <div id="stockList"></div>
+        <div class="controls">
+          <button onclick="openStockModal()">Add</button>
+          <button onclick="removeStock()">Remove</button>
+        </div>
       </div>
     </div>
 
-    <div class="list-container">
-      <h3>Stock Numbers</h3>
-      <div id="stockList"></div>
-      <div class="controls">
-        <button onclick="openStockModal()">Add</button>
-        <button onclick="removeStock()">Remove</button>
+    <div class="controls-row">
+      <div class="controls left-controls">
+        <button onclick="checkOut()">Check Out Key</button>
+        <button onclick="checkIn()">Check In Key</button>
+      </div>
+      <div class="controls right-controls">
+        <button onclick="openLogWindow()">Open Log Window</button>
+        <button onclick="openAdmin()">Admin Settings</button>
       </div>
     </div>
-  </div>
 
-  <div class="controls">
-    <button onclick="checkOut()">Check Out Key</button>
-    <button onclick="checkIn()">Check In Key</button>
-    <button onclick="openLogWindow()">Open Log Window</button>
-    <button onclick="openAdmin()">Admin Settings</button>
-  </div>
-
-  <!-- Modal for adding a Person -->
-  <div id="personModal" class="modal">
-    <div class="modal-content">
-      <h3>Add New Person</h3>
-      <input type="text" id="personInput" placeholder="Enter name" />
-      <div style="margin-top:10px;">
-        <button onclick="confirmAddPerson()">Add</button>
-        <button onclick="closePersonModal()">Cancel</button>
+    <!-- Modal for adding a Person -->
+    <div id="personModal" class="modal">
+      <div class="modal-content">
+        <h3>Add New Person</h3>
+        <input type="text" id="personInput" placeholder="Enter name" />
+        <div style="margin-top: 10px">
+          <button onclick="confirmAddPerson()">Add</button>
+          <button onclick="closePersonModal()">Cancel</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal for adding Stock Number with details -->
-  <div id="stockModal" class="modal">
-    <div class="modal-content">
-      <h3>Add New Stock Number</h3>
-      <input type="text" id="stockInput" placeholder="Stock Number" />
-      <select id="yearDropdown"></select>
-      <select id="makeDropdown"></select>
-      <select id="modelDropdown"></select>
-      <select id="colorDropdown"></select>
-      <input type="text" id="vinInput" placeholder="Last 8 of VIN" maxlength="8" />
-      <div style="margin-top:10px;">
-        <button onclick="confirmAddStock()">Add</button>
-        <button onclick="closeStockModal()">Cancel</button>
+    <!-- Modal for adding Stock Number with details -->
+    <div id="stockModal" class="modal">
+      <div class="modal-content">
+        <h3>Add New Stock Number</h3>
+        <input type="text" id="stockInput" placeholder="Stock Number" />
+        <select id="yearDropdown"></select>
+        <select id="makeDropdown"></select>
+        <select id="modelDropdown"></select>
+        <select id="colorDropdown"></select>
+        <input
+          type="text"
+          id="vinInput"
+          placeholder="Last 8 of VIN"
+          maxlength="8"
+        />
+        <div style="margin-top: 10px">
+          <button onclick="confirmAddStock()">Add</button>
+          <button onclick="closeStockModal()">Cancel</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script src="renderer.js"></script>
-</body>
+    <script src="renderer.js"></script>
+  </body>
 </html>

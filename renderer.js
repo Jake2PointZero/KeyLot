@@ -241,15 +241,31 @@ async function populateDropdowns() {
   }
 }
 
-function populateSelect(id, values) {
-  const select = document.getElementById(id);
+function populateSelect(selectId, items) {
+  const select = document.getElementById(selectId);
+
+  // Sort items (numeric if all numbers, otherwise alphabetically)
+  const sortedItems = [...items].sort((a, b) => {
+    // Try to detect numeric sorting (e.g., years)
+    const aNum = parseInt(a);
+    const bNum = parseInt(b);
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return aNum - bNum; // Numeric sort
+    }
+
+    return a.toString().localeCompare(b.toString()); // Alphabetic sort
+  });
+
   select.innerHTML = '';
-  values.forEach(val => {
-    const opt = document.createElement('option');
-    opt.value = opt.textContent = val;
-    select.appendChild(opt);
+  sortedItems.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item;
+    option.textContent = item;
+    select.appendChild(option);
   });
 }
+
 
 // On load: first populate dropdowns with defaults, then load lists
 (async () => {

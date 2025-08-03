@@ -75,13 +75,13 @@
     <div>
       <label for="filterPerson">Filter by Person:</label>
       <select id="filterPerson">
-        <option value="">--All--</option>
-      </select>
+        <option value="">--All--</option></select
+      ><br />
 
       <label for="filterStock">Filter by Stock Number:</label>
       <select id="filterStock">
-        <option value="">--All--</option>
-      </select>
+        <option value="">--All--</option></select
+      ><br />
 
       <label for="timeFilter">Filter by Time:</label>
       <select id="timeFilter">
@@ -109,7 +109,10 @@
         );
 
         const sortedStock = [...data.stockNumbers].sort((a, b) =>
-          a.stockNumber.localeCompare(b.stockNumber, undefined, { numeric: true, sensitivity: "base" })
+          a.stockNumber.localeCompare(b.stockNumber, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          })
         );
 
         populateFilters(sortedPeople, sortedStock);
@@ -155,9 +158,7 @@
 
           if (timeFilterValue === "today") {
             const recordDate = new Date(record.timestamp);
-            return (
-              recordDate.toDateString() === now.toDateString()
-            );
+            return recordDate.toDateString() === now.toDateString();
           }
 
           if (timeFilterValue === "7days") {
@@ -173,7 +174,9 @@
 
         filtered.forEach((record) => {
           const li = document.createElement("li");
-          li.textContent = `${record.person} ${record.action} key ${record.stockNumber} @ ${new Date(record.timestamp).toLocaleString()}`;
+          li.textContent = `${record.person} ${record.action} key ${
+            record.stockNumber
+          } @ ${new Date(record.timestamp).toLocaleString()}`;
           logList.appendChild(li);
         });
       }
