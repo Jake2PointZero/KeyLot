@@ -165,17 +165,11 @@ function closePersonModal() {
   document.getElementById('personModal').style.display = 'none';
 }
 
-async function confirmAddPerson() {
-  const name = document.getElementById('personInput').value.trim();
-  if (name) {
-    await addPersonByName(name);
-    closePersonModal();
-  } else {
-    alert('Please enter a name.');
-  }
-}
+async function openStockModal() {
+  // First populate dropdowns and set defaults
+  await populateDropdowns();
 
-function openStockModal() {
+  // Then show modal and clear only text inputs
   document.getElementById('stockModal').style.display = 'flex';
   document.getElementById('stockInput').value = '';
   document.getElementById('vinInput').value = '';
@@ -184,6 +178,16 @@ function openStockModal() {
 
 function closeStockModal() {
   document.getElementById('stockModal').style.display = 'none';
+}
+
+async function confirmAddPerson() {
+  const name = document.getElementById('personInput').value.trim();
+  if (name) {
+    await addPersonByName(name);
+    closePersonModal();
+  } else {
+    alert('Please enter a name.');
+  }
 }
 
 async function confirmAddStock() {
@@ -218,6 +222,23 @@ async function populateDropdowns() {
   populateSelect('makeDropdown', options.makes);
   populateSelect('modelDropdown', options.models);
   populateSelect('colorDropdown', options.colors);
+
+  // Set defaults from localStorage (if valid)
+  const defaultYear = localStorage.getItem('default-year');
+  if (defaultYear) {
+    const yearSelect = document.getElementById('yearDropdown');
+    if ([...yearSelect.options].some(opt => opt.value === defaultYear)) {
+      yearSelect.value = defaultYear;
+    }
+  }
+
+  const defaultMake = localStorage.getItem('default-make');
+  if (defaultMake) {
+    const makeSelect = document.getElementById('makeDropdown');
+    if ([...makeSelect.options].some(opt => opt.value === defaultMake)) {
+      makeSelect.value = defaultMake;
+    }
+  }
 }
 
 function populateSelect(id, values) {
@@ -230,5 +251,8 @@ function populateSelect(id, values) {
   });
 }
 
-populateDropdowns();
-loadData();
+// On load: first populate dropdowns with defaults, then load lists
+(async () => {
+  await populateDropdowns();
+  await loadData();
+})();

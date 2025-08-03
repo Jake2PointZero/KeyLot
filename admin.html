@@ -7,6 +7,9 @@
     body { font-family: Arial; padding: 20px; }
     h2 { margin-top: 30px; }
     input { margin-right: 10px; }
+    li.selected { background-color: #d0f0ff; cursor: pointer; }
+    ul { list-style: none; padding-left: 0; }
+    li { padding: 5px; user-select: none; }
   </style>
 </head>
 <body>
@@ -16,12 +19,16 @@
     <h2>Add Year</h2>
     <input type="text" id="yearInput" placeholder="e.g. 2025">
     <button onclick="addOption('years')">Add Year</button>
-    <ul id="yearList"></ul> <!-- fixed ID -->
+    <button onclick="setDefault('year')">Set as Default</button>
+    <ul id="yearList" onclick="selectItem(event, 'year')"></ul>
+    <p id="default-year-display"></p>
 
     <h2>Add Make</h2>
     <input type="text" id="makeInput" placeholder="e.g. Honda">
     <button onclick="addOption('makes')">Add Make</button>
-    <ul id="makeList"></ul>
+    <button onclick="setDefault('make')">Set as Default</button>
+    <ul id="makeList" onclick="selectItem(event, 'make')"></ul>
+    <p id="default-make-display"></p>
 
     <h2>Add Model</h2>
     <input type="text" id="modelInput" placeholder="e.g. Accord">
@@ -43,6 +50,7 @@
       renderList('makes', options.makes);
       renderList('models', options.models);
       renderList('colors', options.colors);
+      updateDefaultDisplays();
     }
 
     function renderList(category, items) {
@@ -58,11 +66,37 @@
     async function addOption(category) {
       const input = document.getElementById(`${category.slice(0, -1)}Input`);
       const value = input.value.trim();
-      if (value) {
-        const updated = await ipcRenderer.invoke('add-option', category, value);
-        renderList(category, updated);
-        input.value = '';
+      if (!value) return;
+      const updated = await ipcRenderer.invoke('add-option', category, value);
+      renderList(category, updated);
+      input.value = '';
+    }
+
+    function selectItem(event, type) {
+      if (event.target.tagName !== 'LI') return;
+      const list = document.getElementById(`${type}List`);
+      Array.from(list.children).forEach(li => li.classList.remove('selected'));
+      event.target.classList.add('selected');
+    }
+
+    function setDefault(type) {
+      const list = document.getElementById(`${type}List`);
+      const selected = list.querySelector('.selected');
+      if (!selected) {
+        alert(`Please select a ${type} to set as default.`);
+        return;
       }
+      const value = selected.textContent;
+      localStorage.setItem(`default-${type}`, value);
+      updateDefaultDisplays();
+      alert(`Default ${type} set to "${value}"`);
+    }
+
+    function updateDefaultDisplays() {
+      document.getElementById('default-year-display').textContent =
+        'Default year: ' + (localStorage.getItem('default-year') || 'None');
+      document.getElementById('default-make-display').textContent =
+        'Default make: ' + (localStorage.getItem('default-make') || 'None');
     }
 
     loadOptions();
