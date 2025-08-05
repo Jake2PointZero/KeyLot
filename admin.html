@@ -5,56 +5,137 @@
     <title>Admin Panel</title>
     <style>
       body {
-        font-family: Arial;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+        margin: 0;
         padding: 20px;
       }
+
+      h1 {
+        text-align: center;
+        color: #007acc;
+      }
+
       h2 {
-        margin-top: 30px;
+        margin-top: 0;
+        font-size: 20px;
+        color: #007acc;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
       }
-      input {
-        margin-right: 10px;
+
+      #controls {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
       }
-      li.selected {
-        background-color: #d0f0ff;
+
+      .panel {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+      }
+
+      input[type="text"] {
+        width: calc(100% - 22px);
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+
+      button {
+        background-color: #007acc;
+        color: #fff;
+        border: none;
+        padding: 8px 12px;
+        margin: 5px 5px 10px 0;
+        border-radius: 5px;
         cursor: pointer;
+        transition: background 0.2s ease;
       }
+
+      button:hover {
+        background-color: #005fa3;
+      }
+
       ul {
         list-style: none;
-        padding-left: 0;
+        padding: 0;
+        margin: 0;
+        max-height: 160px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #fdfdfd;
       }
+
       li {
-        padding: 5px;
-        user-select: none;
+        padding: 6px 10px;
+        margin-bottom: 2px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      li:hover {
+        background-color: #f0f0f0;
+      }
+
+      li.selected {
+        background-color: #cceeff;
+        font-weight: bold;
+      }
+
+      p {
+        font-size: 13px;
+        margin-top: 10px;
+        color: #555;
       }
     </style>
   </head>
   <body>
-    <h1>Admin Panel</h1>
-
     <div id="controls">
-      <h2>Add Year</h2>
-      <input type="text" id="yearInput" placeholder="e.g. 2025" />
-      <button onclick="addOption('years')">Add Year</button>
-      <button onclick="setDefault('year')">Set as Default</button>
-      <ul id="yearList" onclick="selectItem(event, 'year')"></ul>
-      <p id="default-year-display"></p>
+      <div class="panel">
+        <h2>Add Year</h2>
+        <input type="text" id="yearInput" placeholder="e.g. 2025" />
+        <button onclick="addOption('years')">Add Year</button>
+        <button onclick="setDefault('year')">Set as Default</button>
+        <button onclick="removeOption('years')">Remove Selected</button>
+        <ul id="yearList" onclick="selectItem(event, 'year')"></ul>
+        <p id="default-year-display"></p>
+      </div>
 
-      <h2>Add Make</h2>
-      <input type="text" id="makeInput" placeholder="e.g. Honda" />
-      <button onclick="addOption('makes')">Add Make</button>
-      <button onclick="setDefault('make')">Set as Default</button>
-      <ul id="makeList" onclick="selectItem(event, 'make')"></ul>
-      <p id="default-make-display"></p>
+      <div class="panel">
+        <h2>Add Make</h2>
+        <input type="text" id="makeInput" placeholder="e.g. Honda" />
+        <button onclick="addOption('makes')">Add Make</button>
+        <button onclick="setDefault('make')">Set as Default</button>
+        <button onclick="removeOption('makes')">Remove Selected</button>
+        <ul id="makeList" onclick="selectItem(event, 'make')"></ul>
+        <p id="default-make-display"></p>
+      </div>
 
-      <h2>Add Model</h2>
-      <input type="text" id="modelInput" placeholder="e.g. Accord" />
-      <button onclick="addOption('models')">Add Model</button>
-      <ul id="modelList"></ul>
+      <div class="panel">
+        <h2>Add Model</h2>
+        <input type="text" id="modelInput" placeholder="e.g. Accord" />
+        <button onclick="addOption('models')">Add Model</button>
+        <button onclick="removeOption('models')">Remove Selected</button>
+        <ul id="modelList" onclick="selectItem(event, 'model')"></ul>
+      </div>
 
-      <h2>Add Color</h2>
-      <input type="text" id="colorInput" placeholder="e.g. White" />
-      <button onclick="addOption('colors')">Add Color</button>
-      <ul id="colorList"></ul>
+      <div class="panel">
+        <h2>Add Color</h2>
+        <input type="text" id="colorInput" placeholder="e.g. White" />
+        <button onclick="addOption('colors')">Add Color</button>
+        <button onclick="removeOption('colors')">Remove Selected</button>
+        <ul id="colorList" onclick="selectItem(event, 'color')"></ul>
+      </div>
     </div>
 
     <script>
@@ -72,7 +153,18 @@
       function renderList(category, items) {
         const list = document.getElementById(`${category.slice(0, -1)}List`);
         list.innerHTML = "";
-        items.forEach((item) => {
+
+        let sortedItems;
+
+        if (category === "years") {
+          sortedItems = [...items].sort((a, b) => parseInt(b) - parseInt(a));
+        } else {
+          sortedItems = [...items].sort((a, b) =>
+            a.toLowerCase().localeCompare(b.toLowerCase())
+          );
+        }
+
+        sortedItems.forEach((item) => {
           const li = document.createElement("li");
           li.textContent = item;
           list.appendChild(li);
@@ -86,6 +178,34 @@
         const updated = await ipcRenderer.invoke("add-option", category, value);
         renderList(category, updated);
         input.value = "";
+      }
+
+      async function removeOption(category) {
+        const type = category.slice(0, -1);
+        const list = document.getElementById(`${type}List`);
+        const selected = list.querySelector(".selected");
+        if (!selected) {
+          alert(`Please select a ${type} to remove.`);
+          return;
+        }
+
+        const value = selected.textContent;
+        const confirmed = confirm(
+          `Are you sure you want to remove "${value}" from ${category}?`
+        );
+        if (!confirmed) return;
+
+        const updated = await ipcRenderer.invoke(
+          "remove-option",
+          category,
+          value
+        );
+        renderList(category, updated);
+
+        if (localStorage.getItem(`default-${type}`) === value) {
+          localStorage.removeItem(`default-${type}`);
+          updateDefaultDisplays();
+        }
       }
 
       function selectItem(event, type) {

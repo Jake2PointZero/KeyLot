@@ -32,8 +32,8 @@ initDB();
 
 async function createWindow() {
   const win = new BrowserWindow({
-    width: 850,
-    height: 600,
+    width: 860,
+    height: 620,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -164,6 +164,24 @@ ipcMain.handle('add-option', async (event, category, value) => {
 
   return db.data.options[category];
 });
+
+// Remove Option
+
+ipcMain.handle("remove-option", async (event, category, value) => {
+  await db.read(); // Always read before modifying
+  db.data.options ||= { years: [], makes: [], models: [], colors: [] };
+
+  if (!db.data.options[category]) {
+    db.data.options[category] = [];
+  }
+
+  db.data.options[category] = db.data.options[category].filter(item => item !== value);
+
+  await db.write();
+  return db.data.options[category];
+});
+
+
 
 // Admin Window
 ipcMain.on('open-admin-window', () => {

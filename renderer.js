@@ -1,7 +1,7 @@
 const { ipcRenderer } = require('electron');
 
 let selectedPerson = null;
-let selectedStock = null;
+let selectedStocks = new Set();  // Changed from selectedStock
 
 let people = [];
 let stockNumbers = [];
@@ -23,7 +23,8 @@ function displayStockLabel(stock) {
   return `${stock.stockNumber} | ${stock.make} ${stock.model} (${stock.color}) [${stock.vin}]`;
 }
 
-function createList(containerId, items, onClickCallback, selectedItem, checkedOutKeys = new Set()) {
+// Modified to support multi-selection on stock list
+function createList(containerId, items, onClickCallback, selectedItemOrSet, checkedOutKeys = new Set()) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
@@ -41,17 +42,34 @@ function createList(containerId, items, onClickCallback, selectedItem, checkedOu
 
     div.textContent = label;
 
-    const isSelected = (containerId === 'stockList' ? item.stockNumber : item) === selectedItem;
+    // Determine if selected: for stockList, selectedItemOrSet is a Set
+    let isSelected = false;
+    if (containerId === 'stockList') {
+      isSelected = selectedItemOrSet.has(item.stockNumber);
+    } else {
+      isSelected = item === selectedItemOrSet;
+    }
+
     if (isSelected) div.classList.add('selected');
 
     div.addEventListener('click', () => {
-      const listItems = container.querySelectorAll('.list-item');
-      listItems.forEach(li => li.classList.remove('selected'));
-      div.classList.add('selected');
-
       if (containerId === 'stockList') {
-        onClickCallback(item.stockNumber);
+        // Toggle selection for multiple stocks
+        if (selectedStocks.has(item.stockNumber)) {
+          selectedStocks.delete(item.stockNumber);
+          div.classList.remove('selected');
+        } else {
+          selectedStocks.add(item.stockNumber);
+          div.classList.add('selected');
+        }
+        onClickCallback(selectedStocks); // Pass updated set if needed
       } else {
+        // Single selection for people
+        selectedPerson = item;
+        // Remove selection from all others and select this one
+        const listItems = container.querySelectorAll('.list-item');
+        listItems.forEach(li => li.classList.remove('selected'));
+        div.classList.add('selected');
         onClickCallback(item);
       }
     });
@@ -68,7 +86,7 @@ function updateAllLists() {
     a.stockNumber.localeCompare(b.stockNumber, undefined, { numeric: true, sensitivity: 'base' })
   );
   const checkedOutKeys = getCheckedOutKeys(logEntries);
-  createList('stockList', sortedStockNumbers, s => selectedStock = s, selectedStock, checkedOutKeys);
+  createList('stockList', sortedStockNumbers, s => selectedStocks = s, selectedStocks, checkedOutKeys);
 }
 
 async function loadData() {
@@ -76,6 +94,8 @@ async function loadData() {
   people = data.people || [];
   stockNumbers = data.stockNumbers || [];
   logEntries = data.records || [];
+  // Clear selected stocks on reload for consistency
+  selectedStocks.clear();
   updateAllLists();
 }
 
@@ -110,48 +130,59 @@ async function addStockByNumber(stockData) {
 }
 
 async function removeStock() {
-  if (!selectedStock) {
-    alert('Select a stock number to remove.');
+  if (selectedStocks.size !== 1) {
+    alert('Select exactly one stock number to remove.');
     return;
   }
-  await ipcRenderer.invoke('remove-stock', selectedStock);
-  selectedStock = null;
+  const stockToRemove = Array.from(selectedStocks)[0];
+  await ipcRenderer.invoke('remove-stock', stockToRemove);
+  selectedStocks.delete(stockToRemove);
   await loadData();
 }
 
 async function checkOut() {
-  if (!selectedPerson || !selectedStock) {
-    alert('Please select both a person and a stock number.');
+  if (!selectedPerson) {
+    alert('Please select a person.');
+    return;
+  }
+  if (selectedStocks.size === 0) {
+    alert('Please select one or more stock numbers to check out.');
     return;
   }
 
-  const result = await ipcRenderer.invoke('check-out', { stockNumber: selectedStock, person: selectedPerson });
+  // Loop through selected stocks to check out
+  for (const stockNumber of selectedStocks) {
+    const result = await ipcRenderer.invoke('check-out', { stockNumber, person: selectedPerson });
+    if (result?.error) {
+      alert(`Error checking out ${stockNumber}: ${result.error}`);
+      return;
+    }
 
-  if (result?.error) {
-    alert(result.error);
-    return;
+    const entry = `${selectedPerson} checked out key ${stockNumber} @ ${new Date().toLocaleString()}`;
+    await ipcRenderer.invoke('add-log', entry);
   }
-
-  const entry = `${selectedPerson} checked out key ${selectedStock} @ ${new Date().toLocaleString()}`;
-  await ipcRenderer.invoke('add-log', entry);
 
   await loadData();
 }
 
 async function checkIn() {
-  if (!selectedStock) {
-    alert('Please select a stock number to check in.');
+  if (selectedStocks.size === 0) {
+    alert('Please select one or more stock numbers to check in.');
     return;
   }
 
-  const person = await ipcRenderer.invoke('check-in', selectedStock);
-  if (person === 'Unknown') {
-    alert('This key was never checked out.');
-    return;
+  // Loop through selected stocks to check in
+  for (const stockNumber of selectedStocks) {
+    const person = await ipcRenderer.invoke('check-in', stockNumber);
+    if (person === 'Unknown') {
+      alert(`Key ${stockNumber} was never checked out.`);
+      continue;
+    }
+
+    const entry = `${person} checked in key ${stockNumber} @ ${new Date().toLocaleString()}`;
+    await ipcRenderer.invoke('add-log', entry);
   }
 
-  const entry = `${person} checked in key ${selectedStock} @ ${new Date().toLocaleString()}`;
-  await ipcRenderer.invoke('add-log', entry);
   await loadData();
 }
 
@@ -166,10 +197,7 @@ function closePersonModal() {
 }
 
 async function openStockModal() {
-  // First populate dropdowns and set defaults
   await populateDropdowns();
-
-  // Then show modal and clear only text inputs
   document.getElementById('stockModal').style.display = 'flex';
   document.getElementById('stockInput').value = '';
   document.getElementById('vinInput').value = '';
@@ -246,15 +274,14 @@ function populateSelect(selectId, items) {
 
   // Sort items (numeric if all numbers, otherwise alphabetically)
   const sortedItems = [...items].sort((a, b) => {
-    // Try to detect numeric sorting (e.g., years)
     const aNum = parseInt(a);
     const bNum = parseInt(b);
 
     if (!isNaN(aNum) && !isNaN(bNum)) {
-      return aNum - bNum; // Numeric sort
+      return aNum - bNum;
     }
 
-    return a.toString().localeCompare(b.toString()); // Alphabetic sort
+    return a.toString().localeCompare(b.toString());
   });
 
   select.innerHTML = '';
@@ -266,8 +293,7 @@ function populateSelect(selectId, items) {
   });
 }
 
-
-// On load: first populate dropdowns with defaults, then load lists
+// On load: populate dropdowns with defaults, then load lists
 (async () => {
   await populateDropdowns();
   await loadData();
